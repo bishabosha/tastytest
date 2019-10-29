@@ -1,4 +1,4 @@
-val dottyVersion  = "0.20.0-bin-SNAPSHOT"
+val dottyVersion  = dottyLatestNightlyBuild.get
 val scalacRelease = "2.13.2-bin-SNAPSHOT" // publish a local release of scala compiler with the TASTy Reader
 
 lazy val root = project

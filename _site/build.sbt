@@ -1,4 +1,5 @@
-val dottyVersion = "0.20.0-bin-SNAPSHOT"
+val dottyVersion  = dottyLatestNightlyBuild.get
+val scalacRelease = "2.13.2-bin-SNAPSHOT" // publish a local release of scala compiler with the TASTy Reader
 
 lazy val root = project
   .in(file("."))
@@ -11,7 +12,7 @@ lazy val root = project
 
     libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test",
 
-    libraryDependencies += "org.scala-lang" % "scala-library" % "2.13.2-bin-SNAPSHOT",
-    libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.13.2-bin-SNAPSHOT",
-    libraryDependencies += "ch.epfl.lamp" %% "dotty-compiler" % "0.20.0-bin-SNAPSHOT"
+    libraryDependencies += "org.scala-lang" %  "scala-library"  % scalacRelease,
+    libraryDependencies += "org.scala-lang" %  "scala-compiler" % scalacRelease,
+    libraryDependencies += "ch.epfl.lamp"   %% "dotty-compiler" % dottyVersion
   )

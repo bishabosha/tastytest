@@ -6,13 +6,15 @@ import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.util.{Try, Success, Failure}
 import scala.util.Properties
+import scala.annotation.tailrec
 
 import scala.reflect.internal.util.ScalaClassLoader
+import scala.reflect.runtime.ReflectionUtils
 import scala.tools.nsc
 import dotty.tools.dotc
 import java.util.stream.Collectors
 import java.lang.reflect.Modifier
-import java.lang.reflect.Method
+import java.lang.reflect.{ Method, InvocationTargetException, UndeclaredThrowableException }
 
 object TastyTest {
 
@@ -293,32 +295,44 @@ object TastyTest {
 
   private def classloadFrom(cp: String): Try[ScalaClassLoader] =
     for (classpath <- Try(cp.split(":").filter(_.nonEmpty).map(Paths.get(_).toUri.toURL)))
-    yield ScalaClassLoader.fromURLs(classpath)
+    yield ScalaClassLoader.fromURLs(classpath.toIndexedSeq)
 
   private final class Runner private (classloader: ScalaClassLoader) {
 
-    private[this] val clazz =
+    private[this] val RunnerClass =
       try Class.forName(Runner.name, true, classloader)
       catch
         case err: (SecurityException | ClassNotFoundException) =>
           throw IllegalArgumentException(s"no ${Runner.name} in classloader")
 
     private[this] val Runner_run =
-      clazz.getMethod("run", classOf[Method], classOf[java.io.OutputStream], classOf[java.io.OutputStream])
+      val run = RunnerClass.getMethod("run", classOf[Method], classOf[java.io.OutputStream], classOf[java.io.OutputStream])
+      if !Modifier.isStatic(run.getModifiers)
+        throw IllegalStateException(s"${Runner.name}.run is not static.")
+      run
+
+    private def run(main: Method, out: java.io.OutputStream, err: java.io.OutputStream): Try[Unit] =
+      try classloader.asContext {
+        Runner_run.invoke(null, main, out, err)
+        Success(())
+      }
+      catch { case ex => Failure(ReflectionUtils.unwrapThrowable(ex)) }
+
+    private def mainFor(name: String): Try[Method] = Try {
+      val objClass = Class.forName(name, true, classloader)
+      val main     = objClass.getMethod("main", classOf[Array[String]])
+      if !Modifier.isStatic(main.getModifiers)
+        throw NoSuchMethodException(name + ".main is not static")
+      main
+    }
 
     def run(name: String): Try[String] = {
-      def kernel(out: java.io.OutputStream, err: java.io.OutputStream): Try[Unit] = Try {
-        val objClass = Class.forName(name, true, classloader)
-        val main     = objClass.getMethod("main", classOf[Array[String]])
-        if !Modifier.isStatic(main.getModifiers)
-          throw NoSuchMethodException(name + ".main is not static")
-        classloader.asContext[Unit] {
-          Runner_run.invoke(null, main, out, err)
-        }
-      }
       val byteArrayStream = new java.io.ByteArrayOutputStream(50)
       try {
-        val result = kernel(byteArrayStream, byteArrayStream)
+        val result = for
+          main <- mainFor(name)
+          _    <- run(main, byteArrayStream, byteArrayStream)
+        yield ()
         byteArrayStream.flush()
         result.map(_ => byteArrayStream.toString)
       }
