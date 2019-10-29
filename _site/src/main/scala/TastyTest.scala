@@ -13,8 +13,11 @@ import scala.reflect.runtime.ReflectionUtils
 import scala.tools.nsc
 import dotty.tools.dotc
 import java.util.stream.Collectors
-import java.lang.reflect.Modifier
-import java.lang.reflect.{ Method, InvocationTargetException, UndeclaredThrowableException }
+import scala.io.{Source, BufferedSource}
+import java.io.{OutputStream, ByteArrayOutputStream}
+import java.{lang => jl, util => ju}
+import jl.reflect.Modifier
+import jl.reflect.{ Method, InvocationTargetException, UndeclaredThrowableException }
 
 object TastyTest {
 
@@ -58,7 +61,7 @@ object TastyTest {
 
     def printSummary(suite: String, result: Try[Unit]) = result match {
       case Success(_)   => printsuccessln(s"$suite suite passed!")
-      case Failure(err) => printerrln(s"ERROR: $suite suite failed: ${err.getClass.getSimpleName} ${err.getMessage}")
+      case Failure(err) => printerrln(s"ERROR: $suite suite failed: ${err.getMessage}")
     }
 
     def suite(name: String, willRun: Boolean)(runner: => Try[Unit]): Boolean = {
@@ -90,9 +93,9 @@ object TastyTest {
       printwarnln(s"Warning: there are no source files marked as fail tests. (**/*$negScalaSource)")
     }
     for (source <- files.filter(_.endsWith(".scala"))) {
-      val buf = new StringBuilder(50)
+      val buf = StringBuilder(50)
       val compiled = {
-        val byteArrayStream = new java.io.ByteArrayOutputStream(50)
+        val byteArrayStream = ByteArrayOutputStream(50)
         try {
           val compiled = Console.withErr(byteArrayStream) {
             Console.withOut(byteArrayStream) {
@@ -228,6 +231,16 @@ object TastyTest {
     }
   }
 
+  def use[T](resource: String)(op: jl.Iterable[String] => Try[T]): Try[T] = Try {
+    var source: BufferedSource = null
+    try
+      source = Source.fromResource(resource)
+      op(() => source.getLines.asJava)
+    finally
+      if source != null then
+        source.close()
+  }.flatten
+
   private def visibleClasses(classpath: String, pkgName: String, src2: String*): Try[Seq[String]] = Try {
     val classes = {
       val matcher = FileSystems.getDefault.getPathMatcher(
@@ -244,7 +257,7 @@ object TastyTest {
             .stripPrefix(prefix)
             .stripSuffix(".class")
       }
-      var stream: java.util.stream.Stream[Path] = null
+      var stream: ju.stream.Stream[Path] = null
       try {
         stream = Files.walk(cp)
         stream.filter(p => !Files.isDirectory(p) && matcher.matches(p))
@@ -283,7 +296,7 @@ object TastyTest {
       Success(path.normalize.toString)
     }
     else {
-      Failure(new IllegalArgumentException(s"$path is not a directory."))
+      Failure(IllegalArgumentException(s"$path is not a directory."))
     }
   }.flatten
 
@@ -291,7 +304,7 @@ object TastyTest {
     failOnEmpty(Option.when(cond)(()))(ifFalse)
 
   private def failOnEmpty[A](opt: Option[A])(ifEmpty: => String): Try[A] =
-    opt.toRight(new IllegalStateException(ifEmpty)).toTry
+    opt.toRight(IllegalStateException(ifEmpty)).toTry
 
   private def classloadFrom(cp: String): Try[ScalaClassLoader] =
     for (classpath <- Try(cp.split(":").filter(_.nonEmpty).map(Paths.get(_).toUri.toURL)))
@@ -306,33 +319,22 @@ object TastyTest {
           throw IllegalArgumentException(s"no ${Runner.name} in classloader")
 
     private[this] val Runner_run =
-      val run = RunnerClass.getMethod("run", classOf[Method], classOf[java.io.OutputStream], classOf[java.io.OutputStream])
+      val run = RunnerClass.getMethod("run", classOf[String], classOf[OutputStream], classOf[OutputStream])
       if !Modifier.isStatic(run.getModifiers)
         throw IllegalStateException(s"${Runner.name}.run is not static.")
       run
 
-    private def run(main: Method, out: java.io.OutputStream, err: java.io.OutputStream): Try[Unit] =
+    private def run(name: String, out: OutputStream, err: OutputStream): Try[Unit] =
       try classloader.asContext {
-        Runner_run.invoke(null, main, out, err)
+        Runner_run.invoke(null, name, out, err)
         Success(())
       }
       catch { case ex => Failure(ReflectionUtils.unwrapThrowable(ex)) }
 
-    private def mainFor(name: String): Try[Method] = Try {
-      val objClass = Class.forName(name, true, classloader)
-      val main     = objClass.getMethod("main", classOf[Array[String]])
-      if !Modifier.isStatic(main.getModifiers)
-        throw NoSuchMethodException(name + ".main is not static")
-      main
-    }
-
     def run(name: String): Try[String] = {
-      val byteArrayStream = new java.io.ByteArrayOutputStream(50)
+      val byteArrayStream = ByteArrayOutputStream(50)
       try {
-        val result = for
-          main <- mainFor(name)
-          _    <- run(main, byteArrayStream, byteArrayStream)
-        yield ()
+        val result = run(name, byteArrayStream, byteArrayStream)
         byteArrayStream.flush()
         result.map(_ => byteArrayStream.toString)
       }
@@ -359,14 +361,9 @@ object TastyTest {
 
     private val name = "tastytest.internal.Runner"
 
-    private val src: String =
-    """|package tastytest.internal
-       |
-       |object Runner
-       |  def run(main: java.lang.reflect.Method, out: java.io.OutputStream, err: java.io.OutputStream): Unit =
-       |    Console.withOut(out) { Console.withErr(err) { main.invoke(null, Array.empty[String]) } }""".stripMargin
+    private val path = "tastytest.internal/Runner.scala"
 
-    private def writeFile(file: Path): Try[Path] = Try(Files.write(file, src.getBytes))
+    private def writeFile(file: Path): Try[Path] = use(path)(lines => Try(Files.write(file, lines)))
 
     private def createFile(dir: String): Try[Path] = Try(Files.createFile(Paths.get(dir, "Runner.scala")))
   }
