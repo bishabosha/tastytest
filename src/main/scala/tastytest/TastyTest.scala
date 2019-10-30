@@ -1,19 +1,22 @@
+package tastytest
+
 import scala.language.implicitConversions
 
-import scala.sys.process._
-import java.nio.file.{Files, Paths, Path, DirectoryStream, FileSystems}
-import scala.jdk.CollectionConverters._
-import scala.collection.mutable
-import scala.util.{Try, Success, Failure}
-import scala.util.Properties
 import scala.annotation.tailrec
-
+import scala.collection.mutable
+import scala.io.{Source, BufferedSource}
+import scala.jdk.CollectionConverters._
 import scala.reflect.internal.util.ScalaClassLoader
 import scala.reflect.runtime.ReflectionUtils
+import scala.sys.process._
 import scala.tools.nsc
+import scala.util.{Try, Success, Failure}
+import scala.util.Properties
+
 import dotty.tools.dotc
+
 import java.util.stream.Collectors
-import scala.io.{Source, BufferedSource}
+import java.nio.file.{Files, Paths, Path, DirectoryStream, FileSystems}
 import java.io.{OutputStream, ByteArrayOutputStream}
 import java.{lang => jl, util => ju}
 import jl.reflect.Modifier
@@ -126,22 +129,25 @@ object TastyTest {
           case Some(checkFileOpt) =>
             checkFileOpt match {
               case Some(checkFile) =>
-                var lines: java.util.stream.Stream[String] = null
+                var checkfile: java.util.stream.Stream[String] = null
                 try {
-                  lines = Files.lines(Paths.get(checkFile))
-                  val check = lines.iterator().asScala.mkString("", System.lineSeparator, System.lineSeparator)
-                  if (check != output) {
+                  checkfile       = Files.lines(Paths.get(checkFile))
+                  val checkLines  = checkfile.iterator().asScala.toSeq
+                  val outputLines = Diff.splitIntoLines(output)
+                  val diff        = Diff.compareContents(checkLines, outputLines)
+                  if (diff.nonEmpty) {
                     errors += source
-                    printerrln(s"ERROR: $source failed, unexpected output <<<;OUTPUT;\n${output}\n;OUTPUT;<<<;EXPECT;\n${check}\n;EXPECT;")
+                    printerrln(s"ERROR: $source failed, unexpected output.\n$diff")
                   }
                 }
-                finally if (lines != null) {
-                  lines.close()
+                finally if (checkfile != null) {
+                  checkfile.close()
                 }
               case None =>
                 if (output.nonEmpty) {
                   errors += source
-                  printerrln(s"ERROR: $source failed, no check file found for unexpected output <<<;OUTPUT;\n${output}\n;OUTPUT;")
+                  val diff = Diff.compareContents("", output)
+                  printerrln(s"ERROR: $source failed, no check file found for unexpected output.\n$diff")
                 }
             }
         }
@@ -163,7 +169,9 @@ object TastyTest {
     sources.isEmpty || {
       val args = Array(
         "-d", out,
-        "-classpath", classpaths(out, dottyLibrary)
+        "-classpath", classpaths(out, dottyLibrary),
+        "-deprecation",
+        "-Xfatal-warnings"
       ) ++ sources
       nsc.Main.process(args)
     }
@@ -173,7 +181,9 @@ object TastyTest {
     val result = sources.isEmpty || {
       val args = Array(
         "-d", out,
-        "-classpath", classpaths(out, dottyLibrary)
+        "-classpath", classpaths(out, dottyLibrary),
+        "-deprecation",
+        "-Xfatal-warnings"
       ) ++ sources
       !dotc.Main.process(args).hasErrors
     }
@@ -373,9 +383,10 @@ object TastyTest {
       for test <- tests do
         runner.run(test) match
         case Success(output) =>
-          if ("Suite passed!" != output.trim) {
+          val diff = Diff.compareContents("Suite passed!", output)
+          if (diff.nonEmpty) {
             errors += test
-            printerrln(s"ERROR: $test failed, unexpected output <<<;OUTPUT;\n${output}\n;OUTPUT;")
+            printerrln(s"ERROR: $test failed, unexpected output.\n$diff")
           }
         case Failure(err) =>
           errors += test
