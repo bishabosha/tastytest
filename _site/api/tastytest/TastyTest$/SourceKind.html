@@ -108,19 +108,19 @@
 
 <div id="content-wrapper">
     <script>
-    document.title = "tasty-test Docs - Tests";
+    document.title = "tasty-test Docs - SourceKind";
 </script>
 <main class="container api">
     <header>
-        <span class="letter-anchor object">O</span>
+        <span class="letter-anchor class">C</span>
         <span class="name-prefix">
             <span class="modifiers">
-                
+                sealed abstract
             </span>
-            object
+            class
         </span>
         <h1>
-            Tests
+            SourceKind
             
         </h1>
         <span class="name-suffix">
@@ -128,8 +128,6 @@
                 extends
                 
                     Object
-                    with Serializable
-                    
                 
             
         </span>
@@ -142,16 +140,74 @@
             <h2>Supertypes</h2>
             <span>
                 
-                    Object, 
-                
-                    Serializable
+                    Object
                 
             </span>
         </div>
     
     <!-- Annotations -->
     
+        <div id="annotations">
+            <h2>Annotations</h2>
+            <span>
+                
+                    @scala.annotation.internal.Child, 
+                
+                    @scala.annotation.internal.Child, 
+                
+                    @scala.annotation.internal.Child, 
+                
+                    @scala.annotation.internal.Child
+                
+            </span>
+        </div>
+    
     <!-- Constructors -->
+    
+        <div id="constructors">
+            <h2>Constructors</h2>
+            
+                <div class="wide-table">
+                    
+                        <span class="member">
+                            <span class="left-column"></span>
+                            <span class="right-column">
+                                <h3>SourceKind</h3>
+                                
+                                    <span class="params ">
+                                        (
+                                        
+                                        
+                                            <span class="param">
+                                                name:
+                                                
+                                                String
+                                            </span>
+                                            
+                                        
+                                        )
+                                    </span>
+                                
+                                    <span class="params ">
+                                        (
+                                        
+                                        
+                                            <span class="param">
+                                                filter:
+                                                
+                                                String<span class="right-arrow"> =&gt; </span>Boolean
+                                            </span>
+                                            
+                                        
+                                        )
+                                    </span>
+                                
+                            </span>
+                        </span>
+                    
+                </div>
+            
+        </div>
     
     <!-- Members -->
     <div id="members">
@@ -168,63 +224,41 @@
 
                 
                 
-                <div id="printSummary(suite,result)" class="member def public " data-toggle="collapse" data-target=".collapse-printSummary-suite_result-">
+                <div id="filter" class="member val public " data-toggle="collapse" data-target=".collapse-filter">
                     <!-- Left: modifiers and kind -->
                     <span class="left-column">
                         <span class="modifiers">
                             
                         </span>
-                        <span class="member-kind">def&nbsp;</span>
+                        <span class="member-kind">val&nbsp;</span>
                     </span>
                     <!-- Right: name, type parameters, method parameters and return type -->
                     <span class="right-column">
                         <!-- Name -->
                         <h3 class="name">
                             
-                                printSummary
+                                filter
                             
                         </h3>
                         <!-- Type parameters -->
                         
                         <!-- Method parameters -->
                         
-                            
-                                <span class="params ">
-                                    (
-                                                                    
-                                        <span class="param">
-                                            suite:
-                                            
-                                            String
-                                        </span>
-                                        ,&nbsp;
-                                    
-                                        <span class="param">
-                                            result:
-                                            
-                                            Try<span class="type-params">[Unit]</span>
-                                        </span>
-                                        
-                                    
-                                    )
-                                </span>
-                            
-                        
                         <!-- Return type -->
                         
-                            <span class="return-type">: Unit</span>
+                            <span class="return-type">: String<span class="right-arrow"> =&gt; </span>Boolean</span>
                         
                         <!-- Type alias -->
                         
                     </span>
                     <!-- Shortened comment -->
-                    <div class="short collapse show collapse-printSummary-suite_result-">
+                    <div class="short collapse show collapse-filter">
                         
                             <p></p>
                         
                     </div>
                     <!-- Fully detailed comment -->
-                    <div class="details collapse collapse-printSummary-suite_result-">
+                    <div class="details collapse collapse-filter">
                         <!-- Note: the body, if there is one, is already in a paragraph. -->
                         
                         
@@ -271,76 +305,41 @@
 
                 
                 
-                <div id="suite(name,willRun)(runner)" class="member def public " data-toggle="collapse" data-target=".collapse-suite-name_willRun--runner-">
+                <div id="name" class="member val public " data-toggle="collapse" data-target=".collapse-name">
                     <!-- Left: modifiers and kind -->
                     <span class="left-column">
                         <span class="modifiers">
                             
                         </span>
-                        <span class="member-kind">def&nbsp;</span>
+                        <span class="member-kind">val&nbsp;</span>
                     </span>
                     <!-- Right: name, type parameters, method parameters and return type -->
                     <span class="right-column">
                         <!-- Name -->
                         <h3 class="name">
                             
-                                suite
+                                name
                             
                         </h3>
                         <!-- Type parameters -->
                         
                         <!-- Method parameters -->
                         
-                            
-                                <span class="params ">
-                                    (
-                                                                    
-                                        <span class="param">
-                                            name:
-                                            
-                                            String
-                                        </span>
-                                        ,&nbsp;
-                                    
-                                        <span class="param">
-                                            willRun:
-                                            
-                                            Boolean
-                                        </span>
-                                        
-                                    
-                                    )
-                                </span>
-                            
-                                <span class="params ">
-                                    (
-                                                                    
-                                        <span class="param">
-                                            runner:
-                                            =&gt;
-                                            Try<span class="type-params">[Unit]</span>
-                                        </span>
-                                        
-                                    
-                                    )
-                                </span>
-                            
-                        
                         <!-- Return type -->
                         
-                            <span class="return-type">: Option<span class="type-params">[Boolean]</span></span>
+                            <span class="return-type">: String</span>
                         
                         <!-- Type alias -->
                         
                     </span>
                     <!-- Shortened comment -->
-                    <div class="short collapse show collapse-suite-name_willRun--runner-">
+                    <div class="short collapse show collapse-name">
                         
                             <p></p>
                         
                     </div>
                     <!-- Fully detailed comment -->
-                    <div class="details collapse collapse-suite-name_willRun--runner-">
+                    <div class="details collapse collapse-name">
                         <!-- Note: the body, if there is one, is already in a paragraph. -->
                         
                         
