@@ -1,5 +1,5 @@
-val dottyVersion = "0.20.0-bin-20191028-d06a5ff-NIGHTLY" // contains scala-asm 7.0 dependency
-val tastyReader  = "2.13.2-bin-SNAPSHOT" // publish a local release of scala compiler with the TASTy Reader
+val dottyVersion = "0.20.0-RC1"
+val tastyReader  = "2.13.2-bin-SNAPSHOT" // publish a local release of https://github.com/scalacenter/scala/tree/tasty_reader
 
 lazy val root = project
   .in(file("."))
