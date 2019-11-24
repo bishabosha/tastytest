@@ -1,5 +1,5 @@
 val dottyVersion       = "0.21.0-bin-20191107-3cb93f3-NIGHTLY" // contains tasty version 18
-val tastyReaderVersion = "2.13.2-bin-SNAPSHOT" // publish a local release of https://github.com/scalacenter/scala/tree/tasty_reader
+val tastyReaderVersion = "2.13.2-SNAPSHOT-withTASTyReader" // cd scalac/scala && sbt ';set (baseVersionSuffix in Global) := "SNAPSHOT-withTASTyReader";publishLocal'
 val tastytestVersion   = "0.1.0-SNAPSHOT"
 
 val commonDependencies = Seq(
