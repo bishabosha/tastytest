@@ -1,13 +1,12 @@
-val dottyVersion       = "0.20.0-RC1"
+val dottyVersion       = "0.21.0-bin-20191107-3cb93f3-NIGHTLY" // contains tasty version 18
 val tastyReaderVersion = "2.13.2-bin-SNAPSHOT" // publish a local release of https://github.com/scalacenter/scala/tree/tasty_reader
 val tastytestVersion   = "0.1.0-SNAPSHOT"
 
 val commonDependencies = Seq(
   "com.novocode"                   % "junit-interface"     % "0.11"               % "test",
   "com.googlecode.java-diff-utils" % "diffutils"           % "1.3.0",
-  "org.scala-lang"                 % "scala-library"       % tastyReaderVersion,
   "org.scala-lang"                 % "scala-compiler"      % tastyReaderVersion,
-  "ch.epfl.lamp"                   % "dotty-compiler_0.20" % dottyVersion,
+  "ch.epfl.lamp"                   % "dotty-compiler_0.21" % dottyVersion,
 )
 
 val CommonSettings = Seq(
@@ -17,8 +16,15 @@ val CommonSettings = Seq(
   scalaVersion := tastyReaderVersion,
 )
 
-lazy val root = project
-  .in(file("."))
+lazy val root = (project in file("."))
+  .aggregate(tastytest, example)
+  .settings(
+    sourceDirectories in Compile := Nil,
+    sourceDirectories in Test := Nil,
+  )
+
+lazy val tastytest = project
+  .in(file("tastytest"))
   .settings(
     name := "tasty-test",
     CommonSettings
@@ -26,7 +32,7 @@ lazy val root = project
 
 lazy val example = project
   .in(file("example"))
-  .dependsOn(root)
+  .dependsOn(tastytest)
   .settings(
     name := "tasty-test-example",
     CommonSettings,

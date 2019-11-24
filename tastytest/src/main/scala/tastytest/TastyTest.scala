@@ -33,25 +33,26 @@ object TastyTest {
   }
 
   def runSuite(dottyLibrary: String, srcRoot: String, pkgName: String, outDir: Option[String]): Try[Unit] = for {
-    (pre, src2, src3) <- getSources(srcRoot/"run")
+    (pre, src2, src3) <- getSourcesRun(srcRoot/"run")
     out               <- outDir.fold(tempDir(pkgName))(dir)
-    _                 <- scalacPos(out, dottyLibrary, pre:_*)
-    _                 <- dotcPos(out, dottyLibrary, src3:_*)
-    _                 <- scalacPos(out, dottyLibrary, src2:_*)
+    _                 <- scalacPos(out, dottyLibrary, srcRoot/"pre", pre:_*)
+    _                 <- dotcPos(out, dottyLibrary, srcRoot/"src-3", src3:_*)
+    _                 <- scalacPos(out, dottyLibrary, srcRoot/"src-2", src2:_*)
     testNames         <- visibleClasses(out, pkgName, src2:_*)
     _                 <- runMainOn(out, dottyLibrary, testNames:_*)
   } yield ()
 
   def negSuite(dottyLibrary: String, srcRoot: String, pkgName: String, outDir: Option[String]): Try[Unit] = for {
-    (pre, src2, src3) <- getSources(srcRoot/"neg", src2Filters = Set(Scala, Check))
-    out               <- outDir.fold(tempDir(pkgName))(dir)
-    _                 <- scalacPos(out, dottyLibrary, pre:_*)
-    _                 <- dotcPos(out, dottyLibrary, src3:_*)
-    _                 <- scalacNeg(out, dottyLibrary, src2:_*)
+    (src2, src3) <- getSources(srcRoot/"neg", src2Filters = Set(Scala, Check))
+    out          <- outDir.fold(tempDir(pkgName))(dir)
+    _            <- dotcPos(out, dottyLibrary, srcRoot/"src-3", src3:_*)
+    _            <- scalacNeg(out, dottyLibrary, src2:_*)
   } yield ()
 
-  private def scalacPos(out: String, dottyLibrary: String, sources: String*): Try[Unit] =
+  private def scalacPos(out: String, dottyLibrary: String, dir: String, sources: String*): Try[Unit] = {
+    println(s"compiling sources in ${yellow(dir)} with scalac.")
     successWhen(scalac(out, dottyLibrary, sources:_*))("scalac failed to compile sources.")
+  }
 
   private def scalacNeg(out: String, dottyLibrary: String, files: String*): Try[Unit] = {
     val errors = mutable.ArrayBuffer.empty[String]
@@ -66,11 +67,14 @@ object TastyTest {
     if (failMap.isEmpty) {
       printwarnln(s"Warning: there are no source files marked as fail tests. (**/*${ScalaFail.name})")
     }
-    for (source <- files.filter(_.endsWith(".scala"))) {
+    for (source <- files.filter(Scala.filter)) {
       val buf = new StringBuilder(50)
       val compiled = {
         val byteArrayStream = new ByteArrayOutputStream(50)
         try {
+          if (ScalaFail.filter(source)) {
+            println(s"neg test ${cyan(source.stripSuffix(ScalaFail.name))} started")
+          }
           val compiled = Console.withErr(byteArrayStream) {
             Console.withOut(byteArrayStream) {
               scalac(out, dottyLibrary, source)
@@ -149,7 +153,8 @@ object TastyTest {
     args => Try(!process.invoke(dotc.Main, args).asInstanceOf[DottyReporter].hasErrors).getOrElse(false)
   }
 
-  private def dotcPos(out: String, dottyLibrary: String, sources: String*): Try[Unit] = {
+  private def dotcPos(out: String, dottyLibrary: String, dir: String, sources: String*): Try[Unit] = {
+    println(s"compiling sources in ${yellow(dir)} with dotc.")
     val result = sources.isEmpty || {
       val args = Array(
         "-d", out,
@@ -167,15 +172,24 @@ object TastyTest {
   private def getSourceAsName(path: String): String =
     path.split(pathSep).last.stripSuffix(".scala")
 
-  private def getSources(root: String, preFilters: Set[SourceKind] = Set(Scala),
+  private def getSources(root: String, src2Filters: Set[SourceKind] = Set(Scala),
+    src3Filters: Set[SourceKind] = Set(Scala)
+  ): Try[(Seq[String], Seq[String])] = {
+    import SourceKind.whitelist
+    for {
+      src2 <- getFiles(root/"src-2")
+      src3 <- getFiles(root/"src-3")
+    } yield (whitelist(src2Filters, src2:_*), whitelist(src3Filters, src3:_*))
+  }
+
+  private def getSourcesRun(root: String, preFilters: Set[SourceKind] = Set(Scala),
     src2Filters: Set[SourceKind] = Set(Scala), src3Filters: Set[SourceKind] = Set(Scala)
   ): Try[(Seq[String], Seq[String], Seq[String])] = {
     import SourceKind.whitelist
     for {
-      pre  <- getFiles(root/"pre")
-      src2 <- getFiles(root/"src-2")
-      src3 <- getFiles(root/"src-3")
-    } yield (whitelist(preFilters, pre:_*), whitelist(src2Filters, src2:_*), whitelist(src3Filters, src3:_*))
+      pre          <- getFiles(root/"pre")
+      (src2, src3) <- getSources(root, src2Filters, src3Filters)
+    } yield (whitelist(preFilters, pre:_*), src2, src3)
   }
 
   private def visibleClasses(classpath: String, pkgName: String, src2: String*): Try[Seq[String]] = Try {
@@ -220,20 +234,27 @@ object TastyTest {
 
   private def runMainOn(out: String, dottyLibrary: String, tests: String*): Try[Unit] = {
     def runTests(errors: mutable.ArrayBuffer[String], runner: Runner): Try[Unit] = Try {
-      for (test <- tests) runner.run(test) match {
-        case Success(output) =>
-          val diff = Diff.compareContents("Suite passed!", output)
-          if (diff.nonEmpty) {
+      for (test <- tests) {
+        val (pkgs, name) = {
+          val names = test.split('.')
+          names.init.mkString(".") -> names.last
+        }
+        println(s"run suite ${if (pkgs.nonEmpty) pkgs + '.' else ""}${cyan(name)} started")
+        runner.run(test) match {
+          case Success(output) =>
+            val diff = Diff.compareContents("Suite passed!", output)
+            if (diff.nonEmpty) {
+              errors += test
+              printerrln(s"ERROR: $test failed, unexpected output.\n$diff")
+            }
+          case Failure(err) =>
             errors += test
-            printerrln(s"ERROR: $test failed, unexpected output.\n$diff")
-          }
-        case Failure(err) =>
-          errors += test
-          printerrln(s"ERROR: $test failed: ${err.getMessage}")
+            printerrln(s"ERROR: $test failed: ${err.getMessage}")
+        }
       }
     }
     for {
-      runnerPath  <- Runner.compile(dottyLibrary)(dotcPos)
+      runnerPath  <- Runner.compile(dottyLibrary)(scalacPos)
       runner      <- Runner.loadFrom(classpaths(out, dottyLibrary, runnerPath))
       errors      =  mutable.ArrayBuffer.empty[String]
       _           <- runTests(errors, runner)

@@ -49,9 +49,9 @@ final class Runner private (classloader: ScalaClassLoader) {
 
 object Runner {
 
-  def compile(dottyLibrary: String)(dotc: (String, String, Seq[String]) => Try[Unit]): Try[String] = for {
+  def compile(dottyLibrary: String)(compiler: (String, String, String, Seq[String]) => Try[Unit]): Try[String] = for {
     (pkg, src) <- writeRunner
-    _          <- dotc(pkg, dottyLibrary, src :: Nil)
+    _          <- compiler(pkg, dottyLibrary, pkg, src :: Nil)
   } yield pkg
 
   private def writeRunner: Try[(String, String)] = for {
