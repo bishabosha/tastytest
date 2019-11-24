@@ -2,6 +2,10 @@
 
 This is a standalone bootstrapped fork of the TastyTest framework found [here](https://github.com/scalacenter/scala/blob/tasty_reader/src/tastytest/scala/tools/tastytest), it compiles with a version of scalac containing the [TASTy Reader for Scala 2](https://scala.epfl.ch/projects.html#tastyScala2).
 
+### About
+
+See how it works [here](https://github.com/scalacenter/scala/blob/tasty_reader/doc/internal/tastytest.md).
+
 ### Usage
 
 - [get coursier](https://get-coursier.io)

@@ -277,29 +277,7 @@ object TastyTest {
   |  --dotty-library  <paths>         Paths separated by `:`, the classpath for the dotty library.
   |  --src            <path=.>        The path that contains all compilation sources across test kinds.
   |  --out            <path=.>        output for classpaths, optional.
-  |  --package        <pkg=tastytest> The package containing run tests.
-  |
-  |* This runner should be invoked with the `scala-compiler` module on the classpath, easily acheived by using the `scala` shell command.
-  |* During compilation of test sources, and during run test execution, `--dotty-library` is on the classpath.
-  |* TASTy Test currently supports run and neg tests.
-  |* run tests execute as follows:
-  |  1. Compile sources in `$src$/run/pre/**` with the Scala 2 compiler, to be shared accross both compilers.
-  |  2. Compile sources in `$src$/run/src-3/**` with the Dotty compiler in a separate process, using `--dotty-compiler` as the JVM classpath.
-  |     - Classes compiled in (1) are now on the classpath.
-  |  3. Compile sources in `$src$/run/src-2/**` with the Scala 2 compiler.
-  |     - Classes compiled in (1) and (2) are now on the classpath.
-  |  4. Classes with name `$package$Test*` are assumed to be test cases and their main methods are executed sequentially.
-  |     - A successful test should print the single line `Suite passed!` and not have any runtime exceptions.
-  |     - The class will not be executed if there is no source file in `$src$/run/src-2/**` that matches the simple name of the class.
-  |* neg tests execute as follows:
-  |  1. Compile sources in `$src$/neg/pre/**` with the Scala 2 compiler, to be shared accross both compilers.
-  |  2. Compile sources in `$src$/neg/src-3/**` with the Dotty compiler in a separate process, using `--dotty-compiler` as the JVM classpath.
-  |     - Classes compiled in (1) are now on the classpath.
-  |  3. Compile sources in `$src$/neg/src-2/**` with the Scala 2 compiler.
-  |     - Classes compiled in (1) and (2) are now on the classpath.
-  |     - A source file matching `<path>/<name>_fail.scala` succeeds a test if it fails compilation and all compiler output matches a checkfile of name `<path>/<name>.check`
-  |
-  |Note: Failing tests without a fix should be put in a sibling directory, such as `suspended`, to document that they are incompatible at present.""".stripMargin
+  |  --package        <pkg=tastytest> The package containing run tests.""".stripMargin
 
   def run(args: Seq[String]): Boolean = process(args).fold(
     err => {
