@@ -6,7 +6,6 @@ import scala.tools.nsc
 import scala.util.{ Try, Success, Failure }
 
 import dotty.tools.dotc
-import dotc.reporting.{ Reporter => DottyReporter }
 
 import java.nio.file.{ Files => JFiles, Paths => JPaths, Path => JPath }
 import java.io.ByteArrayOutputStream
@@ -147,12 +146,6 @@ object TastyTest {
     }
   }
 
-  // TODO call it directly when we can unpickle overloads
-  private[this] lazy val dotcProcess: Array[String] => Boolean = {
-    val process = classOf[dotc.Driver].getMethod("process", classOf[Array[String]])
-    args => Try(!process.invoke(dotc.Main, args).asInstanceOf[DottyReporter].hasErrors).getOrElse(false)
-  }
-
   private def dotcPos(out: String, dottyLibrary: String, dir: String, sources: String*): Try[Unit] = {
     println(s"compiling sources in ${yellow(dir)} with dotc.")
     val result = sources.isEmpty || {
@@ -162,7 +155,7 @@ object TastyTest {
         "-deprecation",
         "-Xfatal-warnings"
       ) ++ sources
-      dotcProcess(args)
+      Try(!dotc.Main.process(args).hasErrors).getOrElse(false)
     }
     successWhen(result)("dotc failed to compile sources.")
   }

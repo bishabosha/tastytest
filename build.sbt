@@ -1,4 +1,6 @@
-val dottyVersion       = "0.21.0-bin-20191107-3cb93f3-NIGHTLY" // contains tasty version 18
+import sys.process._
+
+val dottyVersion       = "0.20.0-RC1"
 val tastyReaderVersion = "2.13.2-SNAPSHOT-withTASTyReader" // cd scalac/scala && sbt ';set (baseVersionSuffix in Global) := "SNAPSHOT-withTASTyReader";publishLocal'
 val tastytestVersion   = "0.1.0-SNAPSHOT"
 
@@ -6,8 +8,17 @@ val commonDependencies = Seq(
   "com.novocode"                   % "junit-interface"     % "0.11"               % "test",
   "com.googlecode.java-diff-utils" % "diffutils"           % "1.3.0",
   "org.scala-lang"                 % "scala-compiler"      % tastyReaderVersion,
-  "ch.epfl.lamp"                   % "dotty-compiler_0.21" % dottyVersion,
+  "ch.epfl.lamp"                   % "dotty-compiler_0.20" % dottyVersion,
 )
+
+lazy val publishTastyReader = taskKey[Int]("Publish a local version of scala with the tasty-reader")
+
+publishTastyReader := {
+  Process(
+    Seq("sbt", """;set baseVersionSuffix in Global := "SNAPSHOT-withTASTyReader";publishLocal"""),
+    new File("scalac/scala")
+  ).!
+}
 
 val CommonSettings = Seq(
   version      := tastytestVersion,
