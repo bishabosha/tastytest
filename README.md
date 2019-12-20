@@ -9,6 +9,6 @@ See how it works [here](https://github.com/scalacenter/scala/blob/tasty_reader/d
 ### Usage
 
 - [get coursier](https://get-coursier.io)
-- `cd scalac/scala && sbt ';set (baseVersionSuffix in Global) := "SNAPSHOT-withTASTyReader";publishLocal' && cd ../..` to publish the version of scala containing the TASTy Reader.
+- `sbt publishTastyReader` to publish the version of scala containing the TASTy Reader.
 - compile TastyTest with `sbt tastytest/publishLocal`.
 - run with `coursier launch ch.epfl.scala:tasty-test_2.13:0.1.0-SNAPSHOT -- -help`
